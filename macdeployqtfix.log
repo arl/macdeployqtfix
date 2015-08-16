@@ -1,4 +1,0 @@
-INFO | fixing executable 'exepath'
-ERROR | 	exception: [Errno 2] No such file or directory
-INFO | fixing plugins
-INFO | process terminated with success
