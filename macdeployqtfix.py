@@ -246,9 +246,9 @@ def fix_main_binaries():
     bundlepath = os.path.sep.join(exepath.split(os.path.sep)[0:-3])
 
     # fix main binary
-    logger.info('fixing main binary: {0}'.format(exepath))
+    logger.info('fixing executable \'{0}\''.format(exepath))
     if fix_binary(exepath):
-        logger.info('fixing all plugins')
+        logger.info('fixing plugins')
         for root, dirs, files in os.walk(bundlepath):
             for name in filter(lambda f: os.path.splitext(f)[1] == '.dylib', files):
                 logger.info('fixing plugin {0}'.format(name))
