@@ -25,19 +25,19 @@ def run_and_get_output(popen_args):
     """
     exec process and get all output
     """
-    ProcessOutput = namedtuple('ProcessOutput', ['stdout', 'stderr', 'retcode'])
+    process_output = namedtuple('ProcessOutput', ['stdout', 'stderr', 'retcode'])
     try:
         GlobalConfig.logger.debug('run_and_get_output({0})'.format(repr(popen_args)))
 
         proc = Popen(popen_args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate(b'')
-        proc_out = ProcessOutput(stdout, stderr, proc.returncode)
+        proc_out = process_output(stdout, stderr, proc.returncode)
 
         GlobalConfig.logger.debug('\tprocess_output: {0}'.format(proc_out))
         return proc_out
     except Exception as exc:
         GlobalConfig.logger.error('\texception: {0}'.format(exc))
-        return ProcessOutput('', exc.message, -1)
+        return process_output('', exc.message, -1)
 
 def get_dependencies(filename):
     """
@@ -51,12 +51,17 @@ def get_dependencies(filename):
     proc_out = run_and_get_output(popen_args)
     deps = []
     if proc_out.retcode == 0:
-        deps = map(lambda s: s.strip().split(' ')[0],
-                   proc_out.stdout.split('\n')[1:])
+        # deps = map(lambda s: s.strip().split(' ')[0],
+        #            proc_out.stdout.split('\n')[1:])
+        # try replace map...lambda with list comprehension 
+        deps = [s.strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
+
         # prevent infinite recursion when a binary depends on itself (seen with QtWidgets)...
-        deps = filter(lambda s: os.path.basename(filename) not in s, deps)
+        # try replace filter...lambda with list comprehension
+        # deps = filter(lambda s: os.path.basename(filename) not in s, deps)
+        deps = [s for s in deps if os.path.basename(filename) not in s]
         # filter out empty lines
-        deps = filter(None, deps)
+        # deps = filter(None, deps)
     return deps
 
 def is_qt_plugin(filename):
@@ -196,7 +201,8 @@ def fix_dependency(binary, dep):
     if dep_ok and not os.path.exists(dep_abspath):
 
         # ensure destination directory exists
-        GlobalConfig.logger.info('ensuring directory \'{0}\' exists: {0}'.format(os.path.dirname(dep_abspath)))
+        GlobalConfig.logger.info('ensuring directory \'{0}\' exists: {0}'.
+                                 format(os.path.dirname(dep_abspath)))
         popen_args = ['mkdir', '-p', os.path.dirname(dep_abspath)]
         proc_out = run_and_get_output(popen_args)
         if proc_out.retcode != 0:
@@ -204,8 +210,10 @@ def fix_dependency(binary, dep):
             dep_ok = False
         else:
             # copy missing dependency into bundle
-            qtnamesrc = os.path.join(GlobalConfig.qtpath, 'lib', '{0}.framework'.format(qtname), qtname)
-            GlobalConfig.logger.info('copying missing dependency in bundle: {0}'.format(qtname))
+            qtnamesrc = os.path.join(GlobalConfig.qtpath, 'lib', '{0}.framework'.
+                                     format(qtname), qtname)
+            GlobalConfig.logger.info('copying missing dependency in bundle: {0}'.
+                                     format(qtname))
             popen_args = ['cp', qtnamesrc, dep_abspath]
             proc_out = run_and_get_output(popen_args)
             if proc_out.retcode != 0:
@@ -220,7 +228,7 @@ def fix_dependency(binary, dep):
                     GlobalConfig.logger.info(proc_out.stderr)
                     dep_ok = False
     else:
-        GlobalConfig.logger.debug('{0} exist at expected location inside bundle'.format(qtname))    
+        GlobalConfig.logger.debug('{0} is at correct location in bundle'.format(qtname))    
 
     if dep_ok:
         return fix_binary(dep_abspath)
@@ -257,7 +265,9 @@ def fix_main_binaries():
     if fix_binary(GlobalConfig.exepath):
         GlobalConfig.logger.info('fixing plugins')
         for root, dummy, files in os.walk(bundlepath):
-            for name in filter(lambda f: os.path.splitext(f)[1] == '.dylib', files):
+            # for name in filter(lambda f: os.path.splitext(f)[1] == '.dylib', files):
+            # replace with list comprehension
+            for name in [f for f in files if os.path.splitext(f)[1] == '.dylib']:
                 GlobalConfig.logger.info('fixing plugin {0}'.format(name))
                 if not fix_binary(os.path.join(root, name)):
                     return False
