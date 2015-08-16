@@ -1,3 +1,6 @@
+"""
+finish the job started by macdeployqtfix
+"""
 from subprocess import Popen, PIPE
 from string import Template
 import os, sys
@@ -110,7 +113,6 @@ def normalize_qtplugin_name(filename):
     logger.debug('\treturns({0})'.format((qtpluginname, abspath, rpath)))
     return qtpluginname, abspath, rpath
 
-
 def normalize_qtlib_name(filename):
     """
     input: a path to a qt library, as returned by otool, that can have this form :
@@ -122,7 +124,6 @@ def normalize_qtlib_name(filename):
             - abspath is the absolute path of the qt lib inside the app bundle of exepath
             - relpath is the correct rpath to a qt lib inside the app bundle
     """
-
     logger.debug('normalize_qtlib_name({0})'.format(filename))
 
     qtlib_name_rgx = re.compile(QTLIB_NAME_REGEX)
@@ -258,7 +259,9 @@ def fix_main_binaries():
 logger = None
 
 def main():
-
+    """
+    script entry point
+    """
     descr = """finish the job started by macdeployqt!
  - find dependencies/rpathes with otool
  - copy missed dependencies  with cp and mkdir
@@ -269,7 +272,8 @@ def main():
  - 1 : error
  """
 
-    parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description=descr,
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('exepath', help='path to the binary depending on Qt')
     parser.add_argument('qtpath', help='path of Qt libraries used to build the Qt application')
     parser.add_argument('-q', '--quiet', action='store_true', default=False,
@@ -296,15 +300,15 @@ def main():
     formatter = logging.Formatter('%(levelname)s | %(message)s')
     # create console logger
     if not args.quiet:
-        ch = logging.StreamHandler(sys.stdout)
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
+        chdlr = logging.StreamHandler(sys.stdout)
+        chdlr.setFormatter(formatter)
+        logger.addHandler(chdlr)
 
     # create file logger
     if not args.no_log_file:
-        fh = logging.FileHandler('./macdeployqtfix.log', mode='w')
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
+        fhdlr = logging.FileHandler('./macdeployqtfix.log', mode='w')
+        fhdlr.setFormatter(formatter)
+        logger.addHandler(fhdlr)
 
     if args.no_log_file and args.quiet:
         logger.addHandler(logging.NullHandler())
@@ -322,6 +326,5 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-
     main()
 
