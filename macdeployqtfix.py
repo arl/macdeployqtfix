@@ -52,7 +52,7 @@ def get_dependencies(filename):
     deps = []
     if proc_out.retcode == 0:
         deps = map(lambda s: s.strip().split(' ')[0],
-                   stdout.split('\n')[1:])
+                   proc_out.stdout.split('\n')[1:])
         # prevent infinite recursion when a binary depends on itself (seen with QtWidgets)...
         deps = filter(lambda s: os.path.basename(filename) not in s, deps)
         # filter out empty lines
