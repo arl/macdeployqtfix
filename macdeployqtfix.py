@@ -51,17 +51,10 @@ def get_dependencies(filename):
     proc_out = run_and_get_output(popen_args)
     deps = []
     if proc_out.retcode == 0:
-        # deps = map(lambda s: s.strip().split(' ')[0],
-        #            proc_out.stdout.split('\n')[1:])
-        # try replace map...lambda with list comprehension 
+        # some string splitting
         deps = [s.strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
-
         # prevent infinite recursion when a binary depends on itself (seen with QtWidgets)...
-        # try replace filter...lambda with list comprehension
-        # deps = filter(lambda s: os.path.basename(filename) not in s, deps)
         deps = [s for s in deps if os.path.basename(filename) not in s]
-        # filter out empty lines
-        # deps = filter(None, deps)
     return deps
 
 def is_qt_plugin(filename):
@@ -265,8 +258,6 @@ def fix_main_binaries():
     if fix_binary(GlobalConfig.exepath):
         GlobalConfig.logger.info('fixing plugins')
         for root, dummy, files in os.walk(bundlepath):
-            # for name in filter(lambda f: os.path.splitext(f)[1] == '.dylib', files):
-            # replace with list comprehension
             for name in [f for f in files if os.path.splitext(f)[1] == '.dylib']:
                 GlobalConfig.logger.info('fixing plugin {0}'.format(name))
                 if not fix_binary(os.path.join(root, name)):
@@ -302,11 +293,10 @@ def main():
     # globals
     GlobalConfig.qtpath = os.path.normpath(args.qtpath)
     GlobalConfig.exepath = args.exepath
+    GlobalConfig.logger = logging.getLogger()
 
     # configure logging
     ###################
-
-    GlobalConfig.logger = logging.getLogger()
 
     # create formatter
     formatter = logging.Formatter('%(levelname)s | %(message)s')
