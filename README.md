@@ -1,10 +1,13 @@
 # macdeployqtfix
-To bundle a Qt application on Mac OSX, there is macdeployqt. To finish the job there is macdeployqtfix!
+To bundle a Mac OSX application dynamically linked with Qt, there is `macdeployqt`. To finish the job there is `macdeployqtfix`...
 
 ### Here what 'Finish the job' means:
 
- - find dependencies and [rpathes](https://en.wikipedia.org/wiki/Rpath) of the main binary and all the plugins that are present in the bundle
- - copy into the bundle the dependencies that were **missed** by *macdeployqt*
+ - find dependencies and [rpathes](https://en.wikipedia.org/wiki/Rpath) of :
+  - the main executable of the bundle
+  - its dependencies
+  - the plugins present in the bundle
+ - copy into the bundle the **missing** QT libs on which depends those binaries, that should normally have been taken care of by *macdeployqt*
  - fix incorrect permissions
  - fix incorrect rpathes
 
@@ -13,7 +16,7 @@ macdeployqtfix relies on `otool` and `install_name_tool` being on the `PATH`
 
 ### Usage
 
-:exclamation: Before using `macdeployqt` you first have to use `macdeployqtfix`!
+:exclamation: Use `macdeployqt` first, then call `macdeployqtfix`
 
 
 ```
