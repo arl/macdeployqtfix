@@ -1,7 +1,7 @@
 # macdeployqtfix
 To bundle a Mac OSX application dynamically linked with Qt, there is `macdeployqt`. To finish the job there is `macdeployqtfix`...
 
-### Here what 'Finish the job' means:
+### What does 'Finish the job' mean?
 
  - find dependencies and [rpathes](https://en.wikipedia.org/wiki/Rpath) of :
   - the main executable of the bundle
