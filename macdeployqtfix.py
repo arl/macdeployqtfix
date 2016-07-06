@@ -17,7 +17,7 @@ BREWLIB_REGEX = r'^/usr/local/.*/(.*)'
 QTLIB_NORMALIZED = r'$prefix/Frameworks/$qtlib.framework/Versions/$qtversion/$qtlib'
 QTPLUGIN_NORMALIZED = r'$prefix/PlugIns/$plugintype/$pluginname.dylib'
 
-BREWLIB_NORMALIZED = r'$prefix/'
+BREWLIB_NORMALIZED = r'$prefix/Frameworks/$brewlib'
 
 
 class GlobalConfig:
@@ -207,6 +207,7 @@ def normalize_brew_name(filename):
         brewlib=brewlib)
 
     GlobalConfig.logger.debug('\treturns({0})'.format((brewlib, abspath, rpath)))
+    print filename, "->",brewlib, abspath, rpath
     return brewlib, abspath, rpath
 
     
