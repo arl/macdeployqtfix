@@ -191,22 +191,20 @@ def normalize_brew_name(filename):
         msg = 'couldn\'t normalize a brew lib filename: {0}'.format(filename)
         GlobalConfig.logger.critical(msg)
         raise Exception(msg)
-# 
-#     # brewlib normalization settings
+
+    # brewlib normalization settings
     brewlib = rgxret.groups()[0]
-# 
     templ = Template(BREWLIB_NORMALIZED)
-#     # from brewlib, forge 2 path :
-#     #  - absolute path of qt lib in bundle,
+    # from brewlib, forge 2 path :
+    #  - absolute path of qt lib in bundle,
     abspath = os.path.normpath(templ.safe_substitute(
         prefix=os.path.dirname(GlobalConfig.exepath) + '/..',
         brewlib=brewlib))
         
-#     #  - and rpath containing @executable_path, relative to exepath
+    #  - and rpath containing @executable_path, relative to exepath
     rpath = templ.safe_substitute(
         prefix='@executable_path/..',
         brewlib=brewlib)
-    print filename, " -> ", brewlib, abspath, rpath
 
     GlobalConfig.logger.debug('\treturns({0})'.format((brewlib, abspath, rpath)))
     return brewlib, abspath, rpath
