@@ -11,8 +11,13 @@ from collections import namedtuple
 
 QTLIB_NAME_REGEX = r'^(?:@executable_path)?/.*/(Qt[a-zA-Z]*).framework/(?:Versions/\d/)?\1$'
 QTPLUGIN_NAME_REGEX = r'^(?:@executable_path)?/.*/[pP]lug[iI]ns/(.*)/(.*).dylib$'
+
+BREWLIB_REGEX = r'^/usr/local/.*/(.*)'
+
 QTLIB_NORMALIZED = r'$prefix/Frameworks/$qtlib.framework/Versions/$qtversion/$qtlib'
 QTPLUGIN_NORMALIZED = r'$prefix/PlugIns/$plugintype/$pluginname.dylib'
+
+BREWLIB_NORMALIZED = r'$prefix/Frameworks/$brewlib'
 
 
 class GlobalConfig:
@@ -74,6 +79,15 @@ def is_qt_lib(filename):
     accept absolute path as well as path containing @executable_path
     """
     qtlib_name_rgx = re.compile(QTLIB_NAME_REGEX)
+    rgxret = qtlib_name_rgx.match(filename)
+    return rgxret is not None
+
+def is_brew_lib(filename):
+    """
+    check if a given file is a brew library
+    accept absolute path as well as path containing @executable_path
+    """
+    qtlib_name_rgx = re.compile(BREWLIB_REGEX)
     rgxret = qtlib_name_rgx.match(filename)
     return rgxret is not None
 
@@ -158,14 +172,57 @@ def normalize_qtlib_name(filename):
     GlobalConfig.logger.debug('\treturns({0})'.format((qtlib, abspath, rpath)))
     return qtlib, abspath, rpath
 
+
+def normalize_brew_name(filename):
+    """
+    input: a path to a brew library, as returned by otool, that can have this form :
+            - an absolute path /usr/local/lib/yyy
+    output:
+        a tuple (brewlib, abspath, rpath) where:
+            - brewlib is the name of the brew lib
+            - abspath is the absolute path of the qt lib inside the app bundle of exepath
+            - relpath is the correct rpath to a qt lib inside the app bundle
+    """
+    GlobalConfig.logger.debug('normalize_brew_name({0})'.format(filename))
+ 
+    brewlib_name_rgx = re.compile(BREWLIB_REGEX)
+    rgxret = brewlib_name_rgx.match(filename)
+    if not rgxret:
+        msg = 'couldn\'t normalize a brew lib filename: {0}'.format(filename)
+        GlobalConfig.logger.critical(msg)
+        raise Exception(msg)
+
+    # brewlib normalization settings
+    brewlib = rgxret.groups()[0]
+    templ = Template(BREWLIB_NORMALIZED)
+    # from brewlib, forge 2 path :
+    #  - absolute path of qt lib in bundle,
+    abspath = os.path.normpath(templ.safe_substitute(
+        prefix=os.path.dirname(GlobalConfig.exepath) + '/..',
+        brewlib=brewlib))
+        
+    #  - and rpath containing @executable_path, relative to exepath
+    rpath = templ.safe_substitute(
+        prefix='@executable_path/..',
+        brewlib=brewlib)
+
+    GlobalConfig.logger.debug('\treturns({0})'.format((brewlib, abspath, rpath)))
+    print filename, "->",brewlib, abspath, rpath
+    return brewlib, abspath, rpath
+
+    
 def fix_dependency(binary, dep):
     """
     fix 'dep' dependency of 'binary'. 'dep' is a qt library
     """
+    
+    
     if is_qt_lib(dep):
         qtname, dep_abspath, dep_rpath = normalize_qtlib_name(dep)
     elif is_qt_plugin(dep):
         qtname, dep_abspath, dep_rpath = normalize_qtplugin_name(dep)
+    elif is_brew_lib(dep):
+        qtname, dep_abspath, dep_rpath = normalize_brew_name(dep)
     else:
         return True
 
