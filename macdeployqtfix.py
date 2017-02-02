@@ -1,35 +1,36 @@
+# -*- coding: utf-8 -*-
 """
 finish the job started by macdeployqtfix
 """
+
 from subprocess import Popen, PIPE
 from string import Template
-import os, sys
+import os
+import sys
 import logging
 import argparse
 import re
 from collections import namedtuple
 
+
 QTLIB_NAME_REGEX = r'^(?:@executable_path)?/.*/(Qt[a-zA-Z]*).framework/(?:Versions/\d/)?\1$'
-QTPLUGIN_NAME_REGEX = r'^(?:@executable_path)?/.*/[pP]lug[iI]ns/(.*)/(.*).dylib$'
-
-BREWLIB_REGEX = r'^/usr/local/.*/(.*)'
-
 QTLIB_NORMALIZED = r'$prefix/Frameworks/$qtlib.framework/Versions/$qtversion/$qtlib'
+
+QTPLUGIN_NAME_REGEX = r'^(?:@executable_path)?/.*/[pP]lug[iI]ns/(.*)/(.*).dylib$'
 QTPLUGIN_NORMALIZED = r'$prefix/PlugIns/$plugintype/$pluginname.dylib'
 
+BREWLIB_REGEX = r'^/usr/local/.*/(.*)'
 BREWLIB_NORMALIZED = r'$prefix/Frameworks/$brewlib'
 
 
-class GlobalConfig:
-
+class GlobalConfig(object):
     logger = None
     qtpath = None
     exepath = None
 
+
 def run_and_get_output(popen_args):
-    """
-    exec process and get all output
-    """
+    """Run process and get all output"""
     process_output = namedtuple('ProcessOutput', ['stdout', 'stderr', 'retcode'])
     try:
         GlobalConfig.logger.debug('run_and_get_output({0})'.format(repr(popen_args)))
@@ -44,12 +45,13 @@ def run_and_get_output(popen_args):
         GlobalConfig.logger.error('\texception: {0}'.format(exc))
         return process_output('', exc.message, -1)
 
+
 def get_dependencies(filename):
     """
-    input: filename fullpath
-    should call otool on mac and returns the list of dependencies,
-        unsorted, unmodified, just the raw list
-    so then we could eventually re-use in other more specialized functions
+    input: filename must be an absolute path
+    Should call `otool` and returns the list of dependencies, unsorted,
+    unmodified, just the raw list so then we could eventually re-use in other
+    more specialized functions
     """
     GlobalConfig.logger.debug('get_dependencies({0})'.format(filename))
     popen_args = ['otool', '-L', filename]
@@ -62,10 +64,11 @@ def get_dependencies(filename):
         deps = [s for s in deps if os.path.basename(filename) not in s]
     return deps
 
+
 def is_qt_plugin(filename):
     """
-    check if a given file is a qt plugin
-    accept absolute path as well as path containing @executable_path
+    Checks if a given file is a qt plugin.
+    Accepts absolute path as well as path containing @executable_path
     """
     qtlib_name_rgx = re.compile(QTPLUGIN_NAME_REGEX)
     rgxret = qtlib_name_rgx.match(filename)
@@ -73,23 +76,26 @@ def is_qt_plugin(filename):
         GlobalConfig.logger.debug('rgxret is not None for {0}: {1}'.format(filename, rgxret.groups()))
     return rgxret is not None
 
+
 def is_qt_lib(filename):
     """
-    check if a given file is a qt library
-    accept absolute path as well as path containing @executable_path
+    Checks if a given file is a qt library.
+    Accepts absolute path as well as path containing @executable_path
     """
     qtlib_name_rgx = re.compile(QTLIB_NAME_REGEX)
     rgxret = qtlib_name_rgx.match(filename)
     return rgxret is not None
 
+
 def is_brew_lib(filename):
     """
-    check if a given file is a brew library
-    accept absolute path as well as path containing @executable_path
+    Checks if a given file is a brew library
+    Accepts absolute path as well as path containing @executable_path
     """
     qtlib_name_rgx = re.compile(BREWLIB_REGEX)
     rgxret = qtlib_name_rgx.match(filename)
     return rgxret is not None
+
 
 def normalize_qtplugin_name(filename):
     """
@@ -131,6 +137,7 @@ def normalize_qtplugin_name(filename):
 
     GlobalConfig.logger.debug('\treturns({0})'.format((qtpluginname, abspath, rpath)))
     return qtpluginname, abspath, rpath
+
 
 def normalize_qtlib_name(filename):
     """
@@ -184,7 +191,7 @@ def normalize_brew_name(filename):
             - relpath is the correct rpath to a qt lib inside the app bundle
     """
     GlobalConfig.logger.debug('normalize_brew_name({0})'.format(filename))
- 
+
     brewlib_name_rgx = re.compile(BREWLIB_REGEX)
     rgxret = brewlib_name_rgx.match(filename)
     if not rgxret:
@@ -200,23 +207,20 @@ def normalize_brew_name(filename):
     abspath = os.path.normpath(templ.safe_substitute(
         prefix=os.path.dirname(GlobalConfig.exepath) + '/..',
         brewlib=brewlib))
-        
+
     #  - and rpath containing @executable_path, relative to exepath
     rpath = templ.safe_substitute(
         prefix='@executable_path/..',
         brewlib=brewlib)
 
     GlobalConfig.logger.debug('\treturns({0})'.format((brewlib, abspath, rpath)))
-    print filename, "->",brewlib, abspath, rpath
     return brewlib, abspath, rpath
 
-    
+
 def fix_dependency(binary, dep):
     """
     fix 'dep' dependency of 'binary'. 'dep' is a qt library
     """
-    
-    
     if is_qt_lib(dep):
         qtname, dep_abspath, dep_rpath = normalize_qtlib_name(dep)
     elif is_qt_plugin(dep):
@@ -278,11 +282,12 @@ def fix_dependency(binary, dep):
                     GlobalConfig.logger.info(proc_out.stderr)
                     dep_ok = False
     else:
-        GlobalConfig.logger.debug('{0} is at correct location in bundle'.format(qtname))    
+        GlobalConfig.logger.debug('{0} is at correct location in bundle'.format(qtname))
 
     if dep_ok:
         return fix_binary(dep_abspath)
     return False
+
 
 def fix_binary(binary):
     """
@@ -303,6 +308,7 @@ def fix_binary(binary):
             return False
     return True
 
+
 def fix_main_binaries():
     """
         list the main binaries of the app bundle and fix them
@@ -321,10 +327,8 @@ def fix_main_binaries():
                     return False
     return True
 
+
 def main():
-    """
-    script entry point
-    """
     descr = """finish the job started by macdeployqt!
  - find dependencies/rpathes with otool
  - copy missed dependencies  with cp and mkdir
@@ -384,6 +388,6 @@ def main():
         GlobalConfig.logger.error('process terminated with error')
         sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-
