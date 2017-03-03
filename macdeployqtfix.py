@@ -330,9 +330,9 @@ def fix_main_binaries():
 
 def main():
     descr = """finish the job started by macdeployqt!
- - find dependencies/rpathes with otool
- - copy missed dependencies  with cp and mkdir
- - fix missed rpathes        with install_name_tool
+ - find dependencies/rpaths with otool
+ - copy missed dependencies with cp and mkdir
+ - fix missed rpaths        with install_name_tool
 
  exit codes:
  - 0 : success
