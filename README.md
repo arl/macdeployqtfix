@@ -5,7 +5,7 @@ To **finish the job** there is `macdeployqtfix`...
 
 ### What does 'Finish the job' mean?
 
- - Find dependencies and [rpathes](https://en.wikipedia.org/wiki/Rpath) of :
+ - Find dependencies and [rpaths](https://en.wikipedia.org/wiki/Rpath) of :
   - the main binary of the bundle (i.e your app)
   - the dependencies of your app, and their dependencies, and their... (you got
     it!)
@@ -13,7 +13,7 @@ To **finish the job** there is `macdeployqtfix`...
  - Copy into the bundle the **missing** QT libs on which your app depends, that
    should normally have been taken care of by *macdeployqt*
  - Fix incorrect permissions
- - Fix incorrect *rpathes*
+ - Fix incorrect *rpaths*
 
 ### Prerequisites
 
@@ -29,9 +29,9 @@ $ python macdeployqtfix.py -h
 usage: macdeployqtfix.py [-h] [-q] [-nl] [-v] exepath qtpath
 
 finish the job started by macdeployqt!
- - find dependencies/rpathes with otool
+ - find dependencies/rpaths  with otool
  - copy missed dependencies  with cp and mkdir
- - fix missed rpathes        with install_name_tool
+ - fix missed rpaths         with install_name_tool
 
  exit codes:
  - 0 : success
@@ -58,7 +58,7 @@ Let's say that:
 - the bundle is located at `/path/to/bundle/`
 - the path to those Qt libs used to build your app is `/usr/local/Cellar/qt5/5.5.0/`
 
-1. Run `macdeployqt` first, as they tell in [the doc](http://doc.qt.io/qt-5/osx-deployment.html)
+1. Run `macdeployqt` first, as they say in [the doc](http://doc.qt.io/qt-5/osx-deployment.html)
 2. Finish the job by calling:
 
 ```
