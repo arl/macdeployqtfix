@@ -6,10 +6,10 @@ To **finish the job** there is `macdeployqtfix`...
 ### What does 'Finish the job' mean?
 
  - Find dependencies and [rpaths](https://en.wikipedia.org/wiki/Rpath) of :
-  - the main binary of the bundle (i.e your app)
-  - the dependencies of your app, and their dependencies, and their... (you got
-    it!)
-  - the plugins present in the bundle
+   - the main binary of the bundle (i.e your app)
+   - the dependencies of your app, and their dependencies, and their... (you got
+     it!)
+   - the plugins present in the bundle
  - Copy into the bundle the **missing** QT libs on which your app depends, that
    should normally have been taken care of by *macdeployqt*
  - Fix incorrect permissions
