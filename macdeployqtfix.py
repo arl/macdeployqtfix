@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 finish the job started by macdeployqtfix
@@ -11,6 +12,8 @@ import logging
 import argparse
 import re
 from collections import namedtuple
+import ipdb
+ipdb.set_trace()
 
 
 QTLIB_NAME_REGEX = r'^(?:@executable_path)?/.*/(Qt[a-zA-Z]*).framework/(?:Versions/\d/)?\1$'
@@ -71,10 +74,7 @@ def is_qt_plugin(filename):
     Accepts absolute path as well as path containing @executable_path
     """
     qtlib_name_rgx = re.compile(QTPLUGIN_NAME_REGEX)
-    rgxret = qtlib_name_rgx.match(filename)
-    if rgxret is not None:
-        GlobalConfig.logger.debug('rgxret is not None for {0}: {1}'.format(filename, rgxret.groups()))
-    return rgxret is not None
+    return qtlib_name_rgx.match(filename) is not None
 
 
 def is_qt_lib(filename):
@@ -83,8 +83,7 @@ def is_qt_lib(filename):
     Accepts absolute path as well as path containing @executable_path
     """
     qtlib_name_rgx = re.compile(QTLIB_NAME_REGEX)
-    rgxret = qtlib_name_rgx.match(filename)
-    return rgxret is not None
+    return qtlib_name_rgx.match(filename) is not None
 
 
 def is_brew_lib(filename):
@@ -93,8 +92,7 @@ def is_brew_lib(filename):
     Accepts absolute path as well as path containing @executable_path
     """
     qtlib_name_rgx = re.compile(BREWLIB_REGEX)
-    rgxret = qtlib_name_rgx.match(filename)
-    return rgxret is not None
+    return qtlib_name_rgx.match(filename) is not None
 
 
 def normalize_qtplugin_name(filename):
@@ -123,12 +121,14 @@ def normalize_qtplugin_name(filename):
     qtpluginname = rgxret.groups()[1]
 
     templ = Template(QTPLUGIN_NORMALIZED)
+
     # from qtlib, forge 2 path :
     #  - absolute path of qt lib in bundle,
     abspath = os.path.normpath(templ.safe_substitute(
         prefix=os.path.dirname(GlobalConfig.exepath) + '/..',
         plugintype=qtplugintype,
         pluginname=qtpluginname))
+
     #  - and rpath containing @executable_path, relative to exepath
     rpath = templ.safe_substitute(
         prefix='@executable_path/..',
@@ -164,12 +164,14 @@ def normalize_qtlib_name(filename):
     qtversion = 5
 
     templ = Template(QTLIB_NORMALIZED)
+
     # from qtlib, forge 2 path :
     #  - absolute path of qt lib in bundle,
     abspath = os.path.normpath(templ.safe_substitute(
         prefix=os.path.dirname(GlobalConfig.exepath) + '/..',
         qtlib=qtlib,
         qtversion=qtversion))
+
     #  - and rpath containing @executable_path, relative to exepath
     rpath = templ.safe_substitute(
         prefix='@executable_path/..',
@@ -202,6 +204,7 @@ def normalize_brew_name(filename):
     # brewlib normalization settings
     brewlib = rgxret.groups()[0]
     templ = Template(BREWLIB_NORMALIZED)
+
     # from brewlib, forge 2 path :
     #  - absolute path of qt lib in bundle,
     abspath = os.path.normpath(templ.safe_substitute(
@@ -341,8 +344,10 @@ def main():
 
     parser = argparse.ArgumentParser(description=descr,
                                      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('exepath', help='path to the binary depending on Qt')
-    parser.add_argument('qtpath', help='path of Qt libraries used to build the Qt application')
+    parser.add_argument('exepath',
+                        help='path to the binary depending on Qt')
+    parser.add_argument('qtpath',
+                        help='path of Qt libraries used to build the Qt application')
     parser.add_argument('-q', '--quiet', action='store_true', default=False,
                         help='do not create log on standard output')
     parser.add_argument('-nl', '--no-log-file', action='store_true', default=False,
@@ -376,17 +381,15 @@ def main():
     if args.no_log_file and args.quiet:
         GlobalConfig.logger.addHandler(logging.NullHandler())
     else:
-        if args.verbose:
-            GlobalConfig.logger.setLevel(logging.DEBUG)
-        else:
-            GlobalConfig.logger.setLevel(logging.INFO)
+        GlobalConfig.logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
     if fix_main_binaries():
-        GlobalConfig.logger.info('process terminated with success')
-        sys.exit(0)
+        GlobalConfig.logger.info('macdeployqtfix terminated with success')
+        ret = 0
     else:
-        GlobalConfig.logger.error('process terminated with error')
-        sys.exit(1)
+        GlobalConfig.logger.error('macdeployqtfix terminated with error')
+        ret = 1
+    sys.exit(ret)
 
 
 if __name__ == "__main__":
