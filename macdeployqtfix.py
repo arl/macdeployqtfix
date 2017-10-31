@@ -12,8 +12,6 @@ import logging
 import argparse
 import re
 from collections import namedtuple
-import ipdb
-ipdb.set_trace()
 
 
 QTLIB_NAME_REGEX = r'^(?:@executable_path)?/.*/(Qt[a-zA-Z]*).framework/(?:Versions/\d/)?\1$'
