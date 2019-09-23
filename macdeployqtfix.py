@@ -35,8 +35,8 @@ def run_and_get_output(popen_args):
     process_output = namedtuple('ProcessOutput', ['stdout', 'stderr', 'retcode'])
     try:
         GlobalConfig.logger.debug('run_and_get_output({0})'.format(repr(popen_args)))
-
         proc = Popen(popen_args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
         stdout, stderr = proc.communicate(b'')
         proc_out = process_output(stdout, stderr, proc.returncode)
 
@@ -60,7 +60,11 @@ def get_dependencies(filename):
     deps = []
     if proc_out.retcode == 0:
         # some string splitting
-        deps = [s.strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
+        if sys.version_info >= (3, 0):
+            deps = [s.decode('utf-8').strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
+        else:
+            deps = [s.strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
+        
         # prevent infinite recursion when a binary depends on itself (seen with QtWidgets)...
         deps = [s for s in deps if os.path.basename(filename) not in s]
     return deps
