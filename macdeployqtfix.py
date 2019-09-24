@@ -3,7 +3,7 @@
 """
 finish the job started by macdeployqtfix
 """
-
+from pathlib import Path
 from subprocess import Popen, PIPE
 from string import Template
 import os
@@ -22,6 +22,8 @@ QTPLUGIN_NORMALIZED = r'$prefix/PlugIns/$plugintype/$pluginname.dylib'
 
 BREWLIB_REGEX = r'^/usr/local/.*/(.*)'
 BREWLIB_NORMALIZED = r'$prefix/Frameworks/$brewlib'
+
+RELATIVE_LIB_REGEX = r'^@loader_path/(.*)'
 
 
 class GlobalConfig(object):
@@ -96,6 +98,13 @@ def is_brew_lib(filename):
     qtlib_name_rgx = re.compile(BREWLIB_REGEX)
     return qtlib_name_rgx.match(filename) is not None
 
+
+def is_relative_lib(filename):
+    """
+    Checks if a given file is specified as a relative path (@loader_path)
+    """
+    rellib_name_rgx = re.compile(RELATIVE_LIB_REGEX)
+    return rellib_name_rgx.match(filename) is not None
 
 def normalize_qtplugin_name(filename):
     """
@@ -222,6 +231,22 @@ def normalize_brew_name(filename):
     return brewlib, abspath, rpath
 
 
+def is_rel_path_valid(binary, dep):
+    rellib_name_rgx = re.compile(RELATIVE_LIB_REGEX)
+    rgxret = rellib_name_rgx.match(dep)
+    if not rgxret:
+        msg = f"couldn't verify a non-relative lib filename: {dep}"
+        GlobalConfig.logger.critical(msg)
+        raise Exception(msg)
+
+    rellib_name = rgxret.groups()[0]
+    resolved_path = Path(binary).parent.joinpath(rellib_name)
+    ret = resolved_path.exists()
+    if not ret:
+        GlobalConfig.logger.error(f"{resolved_path} cannot be found")
+    return ret
+
+
 def fix_dependency(binary, dep):
     """
     fix 'dep' dependency of 'binary'. 'dep' is a qt library
@@ -232,6 +257,12 @@ def fix_dependency(binary, dep):
         qtname, dep_abspath, dep_rpath = normalize_qtplugin_name(dep)
     elif is_brew_lib(dep):
         qtname, dep_abspath, dep_rpath = normalize_brew_name(dep)
+    elif is_relative_lib(dep):
+        if not is_rel_path_valid(binary, dep):
+            GlobalConfig.logger.error(f"dependency `{dep}` for binary `{binary}` cannot be resolved")
+            GlobalConfig.logger.error(f"please try and fix the original `{Path(binary).name}` binary")
+            return False
+        return True
     else:
         return True
 
