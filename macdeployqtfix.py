@@ -3,7 +3,7 @@
 """
 finish the job started by macdeployqtfix
 """
-
+from pathlib import Path
 from subprocess import Popen, PIPE
 from string import Template
 import os
@@ -23,6 +23,8 @@ QTPLUGIN_NORMALIZED = r'$prefix/PlugIns/$plugintype/$pluginname.dylib'
 BREWLIB_REGEX = r'^/usr/local/.*/(.*)'
 BREWLIB_NORMALIZED = r'$prefix/Frameworks/$brewlib'
 
+RELATIVE_LIB_REGEX = r'^@loader_path/(.*)'
+
 
 class GlobalConfig(object):
     logger = None
@@ -35,8 +37,8 @@ def run_and_get_output(popen_args):
     process_output = namedtuple('ProcessOutput', ['stdout', 'stderr', 'retcode'])
     try:
         GlobalConfig.logger.debug('run_and_get_output({0})'.format(repr(popen_args)))
-
         proc = Popen(popen_args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
         stdout, stderr = proc.communicate(b'')
         proc_out = process_output(stdout, stderr, proc.returncode)
 
@@ -60,7 +62,11 @@ def get_dependencies(filename):
     deps = []
     if proc_out.retcode == 0:
         # some string splitting
-        deps = [s.strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
+        if sys.version_info >= (3, 0):
+            deps = [s.decode('utf-8').strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
+        else:
+            deps = [s.strip().split(' ')[0] for s in proc_out.stdout.splitlines()[1:] if s]
+        
         # prevent infinite recursion when a binary depends on itself (seen with QtWidgets)...
         deps = [s for s in deps if os.path.basename(filename) not in s]
     return deps
@@ -92,6 +98,13 @@ def is_brew_lib(filename):
     qtlib_name_rgx = re.compile(BREWLIB_REGEX)
     return qtlib_name_rgx.match(filename) is not None
 
+
+def is_relative_lib(filename):
+    """
+    Checks if a given file is specified as a relative path (@loader_path)
+    """
+    rellib_name_rgx = re.compile(RELATIVE_LIB_REGEX)
+    return rellib_name_rgx.match(filename) is not None
 
 def normalize_qtplugin_name(filename):
     """
@@ -218,6 +231,22 @@ def normalize_brew_name(filename):
     return brewlib, abspath, rpath
 
 
+def is_rel_path_valid(binary, dep):
+    rellib_name_rgx = re.compile(RELATIVE_LIB_REGEX)
+    rgxret = rellib_name_rgx.match(dep)
+    if not rgxret:
+        msg = f"couldn't verify a non-relative lib filename: {dep}"
+        GlobalConfig.logger.critical(msg)
+        raise Exception(msg)
+
+    rellib_name = rgxret.groups()[0]
+    resolved_path = Path(binary).parent.joinpath(rellib_name)
+    ret = resolved_path.exists()
+    if not ret:
+        GlobalConfig.logger.error(f"{resolved_path} cannot be found")
+    return ret
+
+
 def fix_dependency(binary, dep):
     """
     fix 'dep' dependency of 'binary'. 'dep' is a qt library
@@ -228,6 +257,12 @@ def fix_dependency(binary, dep):
         qtname, dep_abspath, dep_rpath = normalize_qtplugin_name(dep)
     elif is_brew_lib(dep):
         qtname, dep_abspath, dep_rpath = normalize_brew_name(dep)
+    elif is_relative_lib(dep):
+        if not is_rel_path_valid(binary, dep):
+            GlobalConfig.logger.error(f"dependency `{dep}` for binary `{binary}` cannot be resolved")
+            GlobalConfig.logger.error(f"please try and fix the original `{Path(binary).name}` binary")
+            return False
+        return True
     else:
         return True
 
