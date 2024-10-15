@@ -20,7 +20,7 @@ QTLIB_NORMALIZED = r'$prefix/Frameworks/$qtlib.framework/Versions/$qtversion/$qt
 QTPLUGIN_NAME_REGEX = r'^(?:@executable_path)?/.*/[pP]lug[iI]ns/(.*)/(.*).dylib$'
 QTPLUGIN_NORMALIZED = r'$prefix/PlugIns/$plugintype/$pluginname.dylib'
 
-BREWLIB_REGEX = r'^/usr/local/.*/(.*)'
+BREWLIB_REGEX = r'^(?:/usr/local|/opt/homebrew)/.*/(.*)'
 BREWLIB_NORMALIZED = r'$prefix/Frameworks/$brewlib'
 
 
@@ -62,7 +62,11 @@ def get_dependencies(filename):
         # some string splitting
         deps = [s.strip().split(b' ')[0].decode('utf-8') for s in proc_out.stdout.splitlines()[1:] if s]
         # prevent infinite recursion when a binary depends on itself (seen with QtWidgets)...
-        deps = [s for s in deps if os.path.basename(filename) not in s]
+        # allow for cases where the binary's internal reference needs to be updated.
+        deps = [
+           s for s in deps 
+           if (os.path.basename(filename) not in s or is_brew_lib(s))
+        ]      
     return deps
 
 
