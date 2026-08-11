@@ -269,8 +269,11 @@ def fix_dependency(binary, dep):
             dep_ok = False
         else:
             # copy missing dependency into bundle
-            qtnamesrc = os.path.join(GlobalConfig.qtpath, 'lib', '{0}.framework'.
-                                     format(qtname), qtname)
+            if is_brew_lib(dep):
+                qtnamesrc = dep
+            else:
+                qtnamesrc = os.path.join(GlobalConfig.qtpath, 'lib', '{0}.framework'.
+                                         format(qtname), qtname)
             GlobalConfig.logger.info('copying missing dependency in bundle: {0}'.
                                      format(qtname))
             popen_args = ['cp', qtnamesrc, dep_abspath]
